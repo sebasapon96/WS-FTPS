@@ -3,10 +3,19 @@ const multer = require('multer');
 const cors = require('cors');
 const app = express();
 const ftp = require('basic-ftp');
+const fs = require('fs');
 const res = require('express/lib/response');
 
  require('dotenv').config();
-    
+ var error = " ";
+   
+ 
+ async function deleteFiles(nFile){
+     var file = 'dowloads/' + nFile;
+     if(fs.existsSync(file)){
+         fs.unlinkSync(file);
+       }
+    }
   async function sendFiles(rFile,nFile) {
     
     const client = new ftp.Client();
@@ -40,10 +49,12 @@ const res = require('express/lib/response');
       
          await client.downloadTo('dowloads/' + nFile,rFile + nFile);
        
-         
+         error = " ";
        
     } catch (err) {
-        console.error(err);
+        
+        error = err;
+        console.error("este es el error:" + err);
         
     }
    client.close();  
@@ -91,18 +102,29 @@ app.post('/service/ftp/tyj/fidu',  function (req, res, next) {
     // @type List[String] List of words in the body.
     const nameFile = req.headers["name-file"];
     
-    sendFiles(rutaFile,nameFile).then(v =>{
-        try{
-            res.download('dowloads/' + nameFile,nameFile);  
-        }
-        catch{
-            res.send("no archivo");
-        }
+    deleteFiles(nameFile).then(v =>{
 
     });
+     sendFiles(rutaFile,nameFile).then(v =>{
+        try{
     
-   // res.download('dowloads/' + nameFile,nameFile);
-    
+             if (error == " "){
+                res.download('dowloads/' + nameFile,nameFile); 
+               
+             }
+             else{
+                return res.send(error);
+
+             }  
+
+        }
+        catch  {
+            
+            res.send("NO EXITO EL CONSUMO");
+        }
+
+    }); 
+ 
     
 })
  
@@ -112,7 +134,6 @@ const port = process.env.PORT || 8080
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
-
     
 
 
