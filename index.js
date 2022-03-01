@@ -3,11 +3,15 @@ const multer = require('multer');
 const cors = require('cors');
 const app = express();
 const ftp = require('basic-ftp');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const fs = require('fs');
-const res = require('express/lib/response');
+//const pdf2base64 = require('pdf-to-base64');
+//import fetch from 'node-fetch'
+
 
  require('dotenv').config();
  var error = " ";
+ var respuesta = " ";
    
  
  async function deleteFiles(nFile){
@@ -60,6 +64,57 @@ const res = require('express/lib/response');
    client.close();  
 }
 
+async function blobas(){
+
+    
+}
+
+async function sendFilesAS(nFile) {
+    
+    const client = new ftp.Client();
+    // Only for debug session
+    client.ftp.verbose = (process.env.DEBUG === 'true');
+    
+    try {
+        
+         await client.access({
+            host: process.env.FTPS_HOSTAS,
+            port: process.env.FTPS_PORTAS,
+            user: process.env.FTPS_USERAS,
+            password: process.env.FTPS_PASSAS
+            //secure: false
+            
+        })
+        
+        // Log progress for any transfer from now on.
+        client.trackProgress(info => {
+            if (process.env.DEBUG === 'true') {
+                console.log("File", info.name)
+                console.log("Type", info.type)
+                console.log("Transferred", info.bytes)
+                console.log("Transferred Overall", info.bytesOverall)
+                console.log("conectando")
+            }
+        })
+
+        let destinationPath = process.env.FTPS_DIR;
+        
+               
+         
+        // await client.uploadFrom('dowloads/' + '99887766_1.pdf','/esdi/xl_prdv1/uploads/tmpfid/' + nFile);
+         
+         error = " ";
+       
+    } catch (err) {
+        
+        error = err;
+        console.error("este es el error:" + err);
+        
+    }
+   client.close();  
+}
+
+
 app.use(cors({
     origin: "*",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
@@ -102,41 +157,50 @@ app.post('/service/ftp/tyj/fidu',  function (req, res, next) {
     // @type List[String] List of words in the body.
     const nameFile = req.headers["name-file"];
     
+    
     deleteFiles(nameFile).then(v =>{
 
     });
+    
      sendFiles(rutaFile,nameFile).then(v =>{
         try{
     
              if (error == " "){
-                res.download('dowloads/' + nameFile,nameFile); 
-               
+
+                fs.readFile(__dirname + '/dowloads/' +  'prueba.pdf' , function (err, data) {
+                    if (err) throw err;
+                    console.log(typeof data); //OBJECT
+                    const pdf = data.toString('base64');
+                    return res.send(pdf);
+                });
+                
              }
              else{
+              
                 return res.send(error);
-
+                
              }  
 
         }
         catch  {
+        
             
             res.send("NO EXITO EL CONSUMO");
+            console.log(respuesta);
         }
 
     }); 
- 
+    
+
     
 })
  
 
-const port = process.env.PORT || 8080
+const port = process.env.PORT || 8080 
+
+
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
-    
 
-
-    
-  
-  
